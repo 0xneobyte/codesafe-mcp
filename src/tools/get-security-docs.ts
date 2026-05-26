@@ -1,38 +1,69 @@
 import { z } from "zod";
+import { toToolResponse, toErrorResponse } from "../types.js";
 import type { ToolResponse } from "../types.js";
-import { toToolResponse } from "../types.js";
 
 export const getSecurityDocsSchema = {
-  framework: z
-    .enum(["nextjs", "react", "supabase", "firebase", "prisma", "drizzle", "express"])
-    .describe("The framework to retrieve security documentation for"),
-  topic: z
+  query: z
     .string()
-    .min(1)
-    .max(200)
+    .min(5)
+    .max(2000)
     .describe(
-      "The security topic to retrieve docs for (e.g. 'row-level-security', 'authentication', 'cors', 'headers')"
+      "Natural language security question, e.g. 'How do I implement Row Level Security in Supabase?' " +
+      "or 'What headers should I set in Next.js to prevent XSS?' or 'How to prevent SQL injection in Prisma?'"
     ),
-  owasp: z
-    .enum(["A01", "A02", "A03", "A04", "A05", "A06", "A07", "A08", "A09", "A10"])
-    .optional()
-    .describe("Optional OWASP category to filter docs by (narrows results and reduces tokens)"),
 };
 
-export async function getSecurityDocsHandler(input: {
-  framework: string;
-  topic: string;
-  owasp?: string;
-}): Promise<ToolResponse> {
-  // TODO: implement Gemini File Search retrieval
-  // - Query Gemini File Search Store with metadata filter:
-  //     framework=input.framework AND owasp=input.owasp (if provided)
-  // - Semantic search within filtered subset using input.topic as query
-  // - Return relevant security doc chunks with source citations
-  // - Uses pre-indexed security docs from GitHub repos (see scripts/index-docs.ts)
+interface BackendQueryResponse {
+  answer: string;
+  sources: string[];
+  store_id: string;
+}
+
+export async function getSecurityDocsHandler(input: { query: string }): Promise<ToolResponse> {
+  const backendUrl = process.env.CODESAFE_BACKEND_URL;
+  const apiKey = process.env.CODESAFE_API_KEY;
+
+  if (!backendUrl) {
+    return toErrorResponse(
+      "CODESAFE_BACKEND_URL is not set. " +
+      "Add it to your MCP config: CODESAFE_BACKEND_URL=https://your-backend-url"
+    );
+  }
+  if (!apiKey) {
+    return toErrorResponse(
+      "CODESAFE_API_KEY is not set. " +
+      "Add it to your MCP config: CODESAFE_API_KEY=your-backend-api-key"
+    );
+  }
+
+  const url = `${backendUrl.replace(/\/$/, "")}/api/v1/query`;
+
+  let data: BackendQueryResponse;
+  try {
+    const res = await fetch(url, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "X-Api-Key": apiKey,
+      },
+      body: JSON.stringify({ query: input.query }),
+    });
+
+    if (!res.ok) {
+      const text = await res.text();
+      return toErrorResponse(`Backend returned ${res.status}: ${text}`);
+    }
+
+    data = await res.json() as BackendQueryResponse;
+  } catch (err) {
+    return toErrorResponse(
+      `Could not reach CodeSafe backend at ${url}: ${err instanceof Error ? err.message : String(err)}`
+    );
+  }
+
   return toToolResponse({
-    status: "stub",
-    message: "get_security_docs tool — coming soon",
-    received: { framework: input.framework, topic: input.topic, owasp: input.owasp },
+    answer: data.answer,
+    sources: data.sources,
+    query: input.query,
   });
 }
