@@ -7,7 +7,7 @@
     "codesafe-mcp": "./build/index.js"
   },
   "scripts": {
-    "build": "tsc && chmod 755 build/index.js",
+    "build": "tsc && chmod 755 build/index.js && mkdir -p build/data && cp src/data/* build/data/",
     "dev": "tsc --watch",
     "start": "node build/index.js",
     "inspector": "npx @modelcontextprotocol/inspector node build/index.js"

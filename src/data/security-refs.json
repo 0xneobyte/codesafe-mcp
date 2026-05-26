@@ -1,0 +1,166 @@
+{
+  "nextjs": {
+    "authentication": {
+      "title": "Next.js Authentication",
+      "url": "https://nextjs.org/docs/app/building-your-application/authentication",
+      "llms_url": "https://nextjs.org/docs/llms-full.txt",
+      "owasp": "A07",
+      "severity": "critical",
+      "notes": "Use middleware for route protection. Never rely on client-side auth checks alone."
+    },
+    "headers": {
+      "title": "Next.js Security Headers",
+      "url": "https://nextjs.org/docs/app/api-reference/config/next-config-js/headers",
+      "llms_url": "https://nextjs.org/docs/llms-full.txt",
+      "owasp": "A05",
+      "severity": "high",
+      "notes": "Always set CSP, X-Frame-Options, X-Content-Type-Options, HSTS."
+    },
+    "middleware": {
+      "title": "Next.js Middleware",
+      "url": "https://nextjs.org/docs/app/building-your-application/routing/middleware",
+      "llms_url": "https://nextjs.org/docs/llms-full.txt",
+      "owasp": "A01",
+      "severity": "critical",
+      "notes": "Use middleware to enforce auth on protected routes before page load."
+    },
+    "server-actions": {
+      "title": "Next.js Server Actions Security",
+      "url": "https://nextjs.org/docs/app/building-your-application/data-fetching/server-actions-and-mutations",
+      "llms_url": "https://nextjs.org/docs/llms-full.txt",
+      "owasp": "A01",
+      "severity": "high",
+      "notes": "Server Actions are public endpoints — always validate auth and input inside them."
+    },
+    "environment-variables": {
+      "title": "Next.js Environment Variables",
+      "url": "https://nextjs.org/docs/app/building-your-application/configuring/environment-variables",
+      "llms_url": "https://nextjs.org/docs/llms-full.txt",
+      "owasp": "A02",
+      "severity": "critical",
+      "notes": "Never prefix server secrets with NEXT_PUBLIC_. That exposes them to the browser."
+    }
+  },
+  "supabase": {
+    "row-level-security": {
+      "title": "Supabase Row Level Security",
+      "url": "https://supabase.com/docs/guides/database/postgres/row-level-security",
+      "llms_url": "https://supabase.com/llms.txt",
+      "owasp": "A01",
+      "severity": "critical",
+      "notes": "Enable RLS on every table. Default deny. Never query with service_role key from client."
+    },
+    "authentication": {
+      "title": "Supabase Auth",
+      "url": "https://supabase.com/docs/guides/auth",
+      "llms_url": "https://supabase.com/llms.txt",
+      "owasp": "A07",
+      "severity": "critical",
+      "notes": "Use SSR auth helpers server-side. Never trust client-side session alone."
+    },
+    "api-keys": {
+      "title": "Supabase API Keys & Security",
+      "url": "https://supabase.com/docs/guides/api/api-keys",
+      "llms_url": "https://supabase.com/llms.txt",
+      "owasp": "A02",
+      "severity": "critical",
+      "notes": "anon key is safe for client. service_role key must NEVER be exposed client-side."
+    },
+    "storage-security": {
+      "title": "Supabase Storage Security",
+      "url": "https://supabase.com/docs/guides/storage/security/access-control",
+      "llms_url": "https://supabase.com/llms.txt",
+      "owasp": "A01",
+      "severity": "high",
+      "notes": "Storage buckets are public by default. Set policies to restrict access."
+    }
+  },
+  "firebase": {
+    "security-rules": {
+      "title": "Firebase Security Rules",
+      "url": "https://firebase.google.com/docs/rules",
+      "llms_url": null,
+      "owasp": "A01",
+      "severity": "critical",
+      "notes": "Default rules deny all. Write rules before going to production."
+    },
+    "authentication": {
+      "title": "Firebase Authentication",
+      "url": "https://firebase.google.com/docs/auth",
+      "llms_url": null,
+      "owasp": "A07",
+      "severity": "critical",
+      "notes": "Always verify ID tokens server-side using Firebase Admin SDK."
+    },
+    "firestore-rules": {
+      "title": "Firestore Security Rules",
+      "url": "https://firebase.google.com/docs/firestore/security/get-started",
+      "llms_url": null,
+      "owasp": "A01",
+      "severity": "critical",
+      "notes": "Never use allow read, write: if true in production. Always scope by auth.uid."
+    }
+  },
+  "prisma": {
+    "sql-injection": {
+      "title": "Prisma Raw Queries Safety",
+      "url": "https://www.prisma.io/docs/orm/prisma-client/using-raw-sql/raw-queries",
+      "llms_url": "https://www.prisma.io/llms.txt",
+      "owasp": "A03",
+      "severity": "critical",
+      "notes": "Use $queryRaw with Prisma.sql template tag. Never string-interpolate user input into raw queries."
+    },
+    "middleware": {
+      "title": "Prisma Middleware & Access Control",
+      "url": "https://www.prisma.io/docs/orm/prisma-client/client-extensions",
+      "llms_url": "https://www.prisma.io/llms.txt",
+      "owasp": "A01",
+      "severity": "high",
+      "notes": "Use Prisma extensions to enforce access control at the query layer."
+    }
+  },
+  "express": {
+    "helmet": {
+      "title": "Express Security Best Practices (Helmet)",
+      "url": "https://expressjs.com/en/advanced/best-practice-security.html",
+      "llms_url": null,
+      "owasp": "A05",
+      "severity": "high",
+      "notes": "Always use helmet middleware. Disable x-powered-by. Use rate limiting."
+    },
+    "input-validation": {
+      "title": "Express Input Validation",
+      "url": "https://express-validator.github.io/docs/",
+      "llms_url": null,
+      "owasp": "A03",
+      "severity": "critical",
+      "notes": "Validate and sanitize all user input with express-validator or zod."
+    },
+    "authentication": {
+      "title": "Express JWT Authentication",
+      "url": "https://expressjs.com/en/advanced/best-practice-security.html",
+      "llms_url": null,
+      "owasp": "A07",
+      "severity": "critical",
+      "notes": "Verify JWT on every protected route. Use httpOnly cookies, not localStorage."
+    }
+  },
+  "react": {
+    "xss": {
+      "title": "React XSS Prevention",
+      "url": "https://react.dev/reference/react-dom/components/common#dangerously-set-inner-html",
+      "llms_url": "https://react.dev/llms.txt",
+      "owasp": "A03",
+      "severity": "high",
+      "notes": "Never use dangerouslySetInnerHTML with user content. React escapes by default — don't bypass it."
+    },
+    "dependencies": {
+      "title": "React Security Considerations",
+      "url": "https://react.dev/reference/react-dom/components/common",
+      "llms_url": "https://react.dev/llms.txt",
+      "owasp": "A06",
+      "severity": "medium",
+      "notes": "Regularly audit third-party React component libraries for vulnerabilities."
+    }
+  }
+}

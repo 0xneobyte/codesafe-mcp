@@ -6,6 +6,7 @@ import { analyzeSecuritySchema, analyzeSecurityHandler } from "./tools/analyze-s
 import { scanSecretsSchema, scanSecretsHandler } from "./tools/scan-secrets.js";
 import { auditDependenciesSchema, auditDependenciesHandler } from "./tools/audit-dependencies.js";
 import { getSecurityDocsSchema, getSecurityDocsHandler } from "./tools/get-security-docs.js";
+import { verifyPackageSafetySchema, verifyPackageSafetyHandler } from "./tools/verify-package-safety.js";
 
 const server = new McpServer({
   name: "codesafe-mcp",
@@ -55,14 +56,29 @@ server.registerTool(
   "get_security_docs",
   {
     description:
-      "Retrieves the latest official security documentation for a specific framework and topic using " +
-      "Gemini-powered semantic search over pre-indexed security docs. Use this to fetch up-to-date " +
-      "remediation guidance when a vulnerability is detected, or when the user asks how to securely " +
-      "implement authentication, authorization, RLS, CORS, security headers, or similar topics. " +
-      "Optionally filter by OWASP category for more precise, token-efficient results.",
+      "Queries the CodeSafe security knowledge base (RAG) to answer security implementation questions. " +
+      "Use this whenever implementing authentication, RLS, CORS, security headers, SQL injection prevention, " +
+      "secrets handling, input validation, or any security-sensitive feature. Ask in natural language — " +
+      "e.g. 'How do I implement Row Level Security in Supabase?', 'What Next.js headers prevent XSS?', " +
+      "'How to safely handle user input in Prisma?'. Returns authoritative answers grounded in " +
+      "official security documentation. Always call this before generating security-sensitive code.",
     inputSchema: getSecurityDocsSchema,
   },
   getSecurityDocsHandler
+);
+
+server.registerTool(
+  "verify_package_safety",
+  {
+    description:
+      "Checks whether an npm or PyPI package is safe to install before running npm install or pip install. " +
+      "Detects three threats: (1) hallucinated packages that don't exist on the registry, " +
+      "(2) typosquatted packages with names similar to popular packages (e.g. 'lodahs' vs 'lodash'), " +
+      "(3) suspicious new packages with very low downloads — classic supply chain attack pattern. " +
+      "Call this BEFORE any package installation. Critical for AI-generated code where package names may be fabricated.",
+    inputSchema: verifyPackageSafetySchema,
+  },
+  verifyPackageSafetyHandler
 );
 
 async function main() {
