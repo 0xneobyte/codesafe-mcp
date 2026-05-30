@@ -2,3 +2,9 @@ node_modules/
 build/
 .env
 *.js.map
+
+# Python
+backend/__pycache__/
+backend/**/__pycache__/
+backend/**/*.pyc
+backend/**/*.pyo
