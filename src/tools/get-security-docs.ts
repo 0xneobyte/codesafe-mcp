@@ -11,28 +11,39 @@ export const getSecurityDocsSchema = {
       "Natural language security question, e.g. 'How do I implement Row Level Security in Supabase?' " +
       "or 'What headers should I set in Next.js to prevent XSS?' or 'How to prevent SQL injection in Prisma?'"
     ),
+  framework: z
+    .enum(["nextjs", "supabase", "prisma", "express", "react", "firebase", "generic"])
+    .optional()
+    .describe(
+      "Optional: filter results to a specific framework. " +
+      "Pass this when you know which framework the user is working with — improves answer precision."
+    ),
 };
 
 interface BackendQueryResponse {
   answer: string;
   sources: string[];
+  framework_filter: string | null;
   store_id: string;
 }
 
-export async function getSecurityDocsHandler(input: { query: string }): Promise<ToolResponse> {
+export async function getSecurityDocsHandler(input: {
+  query: string;
+  framework?: string;
+}): Promise<ToolResponse> {
   const backendUrl = process.env.CODESAFE_BACKEND_URL;
   const apiKey = process.env.CODESAFE_API_KEY;
 
   if (!backendUrl) {
     return toErrorResponse(
       "CODESAFE_BACKEND_URL is not set. " +
-      "Add it to your MCP config: CODESAFE_BACKEND_URL=https://your-backend-url"
+      "Add it to your MCP config env: CODESAFE_BACKEND_URL=https://your-backend-url"
     );
   }
   if (!apiKey) {
     return toErrorResponse(
       "CODESAFE_API_KEY is not set. " +
-      "Add it to your MCP config: CODESAFE_API_KEY=your-backend-api-key"
+      "Add it to your MCP config env: CODESAFE_API_KEY=your-backend-api-key"
     );
   }
 
@@ -40,13 +51,16 @@ export async function getSecurityDocsHandler(input: { query: string }): Promise<
 
   let data: BackendQueryResponse;
   try {
+    const body: Record<string, string> = { query: input.query };
+    if (input.framework) body.framework = input.framework;
+
     const res = await fetch(url, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
         "X-Api-Key": apiKey,
       },
-      body: JSON.stringify({ query: input.query }),
+      body: JSON.stringify(body),
     });
 
     if (!res.ok) {
@@ -64,6 +78,6 @@ export async function getSecurityDocsHandler(input: { query: string }): Promise<
   return toToolResponse({
     answer: data.answer,
     sources: data.sources,
-    query: input.query,
+    ...(data.framework_filter && { framework: data.framework_filter }),
   });
 }
