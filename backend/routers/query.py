@@ -1,5 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException, Header, Request
 from pydantic import BaseModel, Field
+from typing import Optional
 from slowapi import Limiter
 from slowapi.util import get_remote_address
 from google import genai
@@ -8,21 +9,31 @@ from google.genai import types
 from config import Settings, get_settings
 
 router = APIRouter(tags=["query"])
-limiter = Limiter(key_func=get_remote_address)
+limiter = Limiter(key_func=get_remote_address)  # decorators reference this; app.state.limiter is the live instance
+
+VALID_FRAMEWORKS = {"nextjs", "supabase", "prisma", "express", "react", "firebase", "generic"}
 
 
 class QueryRequest(BaseModel):
-    query: str = Field(..., min_length=3, max_length=2000, description="Natural language security question")
-    store_id: str | None = Field(None, description="Override store ID (uses GEMINI_STORE_ID if omitted)")
+    query: str = Field(..., min_length=3, max_length=2000)
+    framework: Optional[str] = Field(
+        None,
+        description="Filter results to a specific framework: nextjs | supabase | prisma | express | react | firebase | generic",
+    )
+    store_id: Optional[str] = Field(None, description="Override store ID (uses GEMINI_STORE_ID env if omitted)")
 
 
 class QueryResponse(BaseModel):
     answer: str
     sources: list[str]
+    framework_filter: Optional[str]
     store_id: str
 
 
-def verify_api_key(x_api_key: str = Header(..., alias="X-Api-Key"), settings: Settings = Depends(get_settings)):
+def verify_api_key(
+    x_api_key: str = Header(..., alias="X-Api-Key"),
+    settings: Settings = Depends(get_settings),
+):
     if x_api_key != settings.BACKEND_API_KEY:
         raise HTTPException(status_code=401, detail="Invalid API key")
 
@@ -42,19 +53,38 @@ async def query_security_kb(
             detail="No File Search Store configured. Upload security docs first and set GEMINI_STORE_ID.",
         )
 
+    # Build metadata filter if framework provided
+    metadata_filter: Optional[str] = None
+    if body.framework:
+        fw = body.framework.lower().strip()
+        if fw not in VALID_FRAMEWORKS:
+            raise HTTPException(
+                status_code=400,
+                detail=f"Unknown framework '{fw}'. Valid: {sorted(VALID_FRAMEWORKS)}",
+            )
+        metadata_filter = f'framework="{fw}"'
+
     client = genai.Client(api_key=settings.GEMINI_API_KEY)
 
+    file_search_kwargs: dict = {"file_search_store_names": [store_id]}
+    if metadata_filter:
+        file_search_kwargs["metadata_filter"] = metadata_filter
+    file_search = types.FileSearch(**file_search_kwargs)
+
+    system_prompt = (
+        "You are a security expert assistant for software developers. "
+        "Answer questions using ONLY the uploaded security documentation. "
+        "Be concise, specific, and always include code examples when relevant. "
+        "If the documentation doesn't cover the question, say so explicitly."
+    )
+
     try:
-        file_search = types.FileSearch(file_search_store_names=[store_id])
         response = client.models.generate_content(
             model=settings.GEMINI_MODEL,
-            contents=(
-                f"You are a security expert. Answer this question using only the uploaded security documentation.\n\n"
-                f"Question: {body.query}\n\n"
-                f"Be concise and specific. Include code examples when relevant."
-            ),
+            contents=body.query,
             config=types.GenerateContentConfig(
-                tools=[types.Tool(file_search=file_search)]
+                system_instruction=system_prompt,
+                tools=[types.Tool(file_search=file_search)],
             ),
         )
     except Exception as e:
@@ -73,4 +103,9 @@ async def query_security_kb(
                         seen.add(title)
                         sources.append(title)
 
-    return QueryResponse(answer=response.text, sources=sources, store_id=store_id)
+    return QueryResponse(
+        answer=response.text,
+        sources=sources,
+        framework_filter=body.framework,
+        store_id=store_id,
+    )
