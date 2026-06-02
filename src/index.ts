@@ -7,6 +7,7 @@ import { scanSecretsSchema, scanSecretsHandler } from "./tools/scan-secrets.js";
 import { auditDependenciesSchema, auditDependenciesHandler } from "./tools/audit-dependencies.js";
 import { getSecurityDocsSchema, getSecurityDocsHandler } from "./tools/get-security-docs.js";
 import { verifyPackageSafetySchema, verifyPackageSafetyHandler } from "./tools/verify-package-safety.js";
+import { setupEnforcementSchema, setupEnforcementHandler } from "./tools/setup-enforcement.js";
 
 const server = new McpServer({
   name: "codesafe-mcp",
@@ -30,10 +31,14 @@ server.registerTool(
   "scan_secrets",
   {
     description:
-      "Scans code or file contents for hardcoded secrets, API keys, tokens, passwords, and credentials " +
-      "using regex pattern matching and entropy analysis. Call this when reviewing any file that might contain " +
-      "sensitive values — especially .env files, config files, or any code with string literals. " +
-      "Maps findings to OWASP A02 (Cryptographic Failures).",
+      "Scans code for hardcoded secrets, API keys, tokens, passwords, and credentials " +
+      "using regex pattern matching and entropy analysis. Maps findings to OWASP A02 (Cryptographic Failures). " +
+      "Four capabilities: " +
+      "(1) 'code' param — scans a single file or snippet. " +
+      "(2) 'directory' param — recursively scans an entire codebase in one call, returning per-file findings and auto-fix for each file. Use this when the user asks to scan a project, folder, or whole codebase. " +
+      "(3) 'repoPath' — scans full git commit history for secrets ever committed, even if later removed. " +
+      "(4) 'additionalFiles' — tracks whether a secret flows into a client component. " +
+      "Always returns auto-fix: the corrected code with process.env substitutions and a .env snippet.",
     inputSchema: scanSecretsSchema,
   },
   scanSecretsHandler
@@ -79,6 +84,20 @@ server.registerTool(
     inputSchema: verifyPackageSafetySchema,
   },
   verifyPackageSafetyHandler
+);
+
+server.registerTool(
+  "setup_codesafe_enforcement",
+  {
+    description:
+      "One-time setup that enforces package safety checks in a project. " +
+      "Writes a mandatory CLAUDE.md rule instructing AI agents to call verify_package_safety before any npm/pip install. " +
+      "Also creates a .codesafe/check-packages.sh hook script and wires it into .claude/settings.json as a PreToolUse hook, " +
+      "so Claude Code hard-blocks installs of packages that don't exist on the npm/PyPI registry. " +
+      "Call this once per project to protect the entire team. Commit the generated files to enforce for all contributors.",
+    inputSchema: setupEnforcementSchema,
+  },
+  setupEnforcementHandler
 );
 
 async function main() {
