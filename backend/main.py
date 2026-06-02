@@ -6,7 +6,7 @@ from slowapi.middleware import SlowAPIMiddleware
 from slowapi.util import get_remote_address
 
 from config import get_settings
-from routers import query, upload
+from routers import query, upload, package_safety
 
 settings = get_settings()
 
@@ -39,6 +39,7 @@ def health():
 
 # Query endpoint — always mounted
 app.include_router(query.router, prefix=settings.API_V1_PREFIX)
+app.include_router(package_safety.router, prefix=settings.API_V1_PREFIX)
 
 # Admin / ingestion endpoints — disabled in production
 if settings.ENVIRONMENT != "production":
