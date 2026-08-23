@@ -3,6 +3,10 @@
   "version": "0.1.0",
   "description": "MCP server for real-time security analysis in AI-assisted development",
   "type": "module",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/0xneobyte/codesafe-mcp.git"
+  },
   "bin": {
     "codesafe-mcp": "./build/index.js"
   },
