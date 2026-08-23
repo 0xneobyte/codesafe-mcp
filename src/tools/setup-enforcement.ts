@@ -11,16 +11,41 @@ export const setupEnforcementSchema = {
 };
 
 const CLAUDE_MD_RULE = `
-## Package Safety — Mandatory (CodeSafe)
+## CodeSafe MCP — Security Tools (Mandatory)
 
-Before writing or editing ANY dependency file (package.json, requirements.txt, pyproject.toml, Pipfile, etc.):
+This project has CodeSafe MCP enabled. You have access to three security tools. Use them as described below — do not skip them.
 
-1. Call \`verify_package_safety\` for **every** package you are about to add (use batch mode for multiple)
-2. Only add the package if risk is \`safe\` or \`warn\`
+### 1. scan_secrets
+
+Call \`scan_secrets\` whenever:
+- The user asks to scan the codebase, a file, or a directory for secrets, credentials, hardcoded keys, or sensitive values
+- You are about to write or have just written code that contains API keys, tokens, passwords, connection strings, or private keys
+- The user asks about hardcoded environment variables or exposed credentials
+- The user asks to check git history for leaked secrets
+
+Use \`directory\` param to scan a whole codebase in one call. Use \`additionalFiles\` to check if a secret flows into a client component.
+
+### 2. verify_package_safety
+
+Call \`verify_package_safety\` before writing or editing ANY dependency file (package.json, requirements.txt, pyproject.toml, Pipfile) and before running any install command:
+
+1. Call it for **every** package you are about to add — use \`packages[]\` batch mode for multiple
+2. Only proceed if risk is \`safe\` or \`warn\`
 3. Do NOT add the package if risk is \`suspicious\`, \`high\`, \`critical\`, or \`hallucinated\`
 
-This also applies before running \`npm install <pkg>\`, \`pip install <pkg>\`, or any other install command.
-Never skip this check — hallucinated, typosquatted, and newly published packages are real supply chain threats.
+Never skip this — hallucinated, typosquatted, and newly published packages are real supply chain threats.
+
+### 3. get_security_docs
+
+Call \`get_security_docs\` before writing any security-sensitive code:
+- Authentication, session management, or JWT handling
+- Row Level Security or database access policies
+- CORS configuration or security headers
+- Input validation or SQL query construction
+- Secrets handling or environment variable patterns
+- Any API route with access control requirements
+
+Pass the \`framework\` param when known (nextjs, supabase, prisma, express, react, firebase) for more precise answers.
 `;
 
 const DEP_FILES = [
