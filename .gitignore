@@ -9,4 +9,4 @@ backend/**/__pycache__/
 backend/**/*.pyc
 backend/**/*.pyo
 
-docs/
+demo/
